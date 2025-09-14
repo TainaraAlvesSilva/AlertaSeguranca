@@ -24,3 +24,4 @@ class CommentRecord:
     def to_dict(self) -> Dict[str, Any]:
         """Converte para dict (útil para persistir)."""
         return asdict(self)
+ 

@@ -1,13 +1,31 @@
 """
 src/ingestion/youtube.py
 """
-
-from typing import List, Dict, Tuple
-from googleapiclient.discovery import build
+import os
 import time
 import logging
+import pandas as pd
+from typing import List, Dict, Tuple
+from googleapiclient.discovery import build
+from dotenv import load_dotenv
 
 logger = logging.getLogger("ingestion.youtube")
+
+# carrega variáveis do .env
+load_dotenv()
+YOUTUBE_API_KEY = os.getenv("YOUTUBE_API_KEY")
+
+
+def _extract_video_id(url_or_id: str) -> str:
+    """
+    Aceita tanto a URL completa do YouTube quanto o ID puro.
+    """
+    if "youtube.com" in url_or_id and "v=" in url_or_id:
+        return url_or_id.split("v=")[-1].split("&")[0]
+    if "youtu.be" in url_or_id:
+        return url_or_id.split("/")[-1].split("?")[0]
+    return url_or_id
+
 
 def fetch_comments(
     video_id: str,
@@ -17,10 +35,6 @@ def fetch_comments(
 ) -> List[Dict]:
     """
     Busca comentários usando a YouTube Data API v3.
-    - video_id: ID do vídeo (ex.: 'dQw4w9WgXcQ')
-    - max_pages: quantas páginas (paginação)
-    - page_size: até 100 por página
-    Retorna: lista de itens crus da API.
     """
     youtube = build("youtube", "v3", developerKey=api_key)
     comments_raw: List[Dict] = []
@@ -41,27 +55,36 @@ def fetch_comments(
         logger.info(f"[YouTube] Página {page+1}: {len(items)} comentários")
         request = youtube.commentThreads().list_next(request, response)
         page += 1
-        time.sleep(0.3)  # evita throttling
+        time.sleep(0.3)
 
     return comments_raw
 
-def normalize_comment(item: Dict) -> Tuple[str, Dict]:
+
+def normalize_comment(item: Dict) -> Dict:
     """
-campos que serão retornador Retorna (comment_id, payload_normalizado).
+    Normaliza um comentário do YouTube.
     """
     snippet = item.get("snippet", {})
     top = snippet.get("topLevelComment", {}).get("snippet", {})
 
-    comment_id = item.get("id", "")
-    author = top.get("authorDisplayName")
-    text = top.get("textDisplay", "")  # plainText
-    like_count = top.get("likeCount", 0)
-    published_at = top.get("publishedAt")
-
-    payload = {
-        "author": author,
-        "text": text,
-        "likeCount": like_count,
-        "publishedAt": published_at
+    return {
+        "comment_id": item.get("id", ""),
+        "author": top.get("authorDisplayName"),
+        "text": top.get("textDisplay", ""),
+        "likeCount": top.get("likeCount", 0),
+        "publishedAt": top.get("publishedAt")
     }
-    return comment_id, payload
+
+
+def get_youtube_comments(url_or_id: str, limit: int = 100) -> pd.DataFrame:
+    """
+    Função de alto nível para buscar comentários normalizados em DataFrame.
+    """
+    if not YOUTUBE_API_KEY:
+        raise RuntimeError("YOUTUBE_API_KEY não configurada no .env")
+
+    video_id = _extract_video_id(url_or_id)
+    raw_comments = fetch_comments(video_id=video_id, api_key=YOUTUBE_API_KEY, max_pages=limit // 100 + 1)
+    normalized = [normalize_comment(item) for item in raw_comments]
+
+    return pd.DataFrame(normalized[:limit])

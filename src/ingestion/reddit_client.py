@@ -1,7 +1,7 @@
 # src/ingestion/reddit_client.py
 from functools import lru_cache
 import praw
-from common.config import get_env
+from src.common.config import get_env
 
 @lru_cache(maxsize=1)
 def get_client() -> praw.Reddit:

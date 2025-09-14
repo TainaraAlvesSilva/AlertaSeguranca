@@ -10,3 +10,8 @@ uvicorn
 python-dotenv
 PyYAML
 praw>=7.7
+pandas
+snscrape
+youtube-comment-downloader
+selenium
+webdriver-manager
