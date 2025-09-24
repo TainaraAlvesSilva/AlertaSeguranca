@@ -1,6 +1,10 @@
+import pwd
 from fastapi import FastAPI, Query
 from typing import Optional
 import pandas as pd
+
+# uvicorn src.api.scraper_api:app --reload
+# http://127.0.0.1:8000/docs#/default/
 
 # importa funções dos scrapers
 from src.ingestion.twitter_web import (
@@ -9,6 +13,10 @@ from src.ingestion.twitter_web import (
     scrape_twitter_post,
 )
 
+from src.ingestion.instagram_web import (
+    scrape_instagram_post,
+    scrape_instagram_reels
+)
 
 from src.ingestion.youtube import get_youtube_comments
 from src.ingestion.reddit import get_reddit_comments
@@ -21,9 +29,6 @@ def df_to_json(df: pd.DataFrame):
 
 # ---------------------- TWITTER ----------------------
 
-
-
-
 @app.get("/twitter/web")
 def twitter_web(mode: str, query: str, limit: int = 10):
     if mode == "profile":
@@ -34,6 +39,17 @@ def twitter_web(mode: str, query: str, limit: int = 10):
         return scrape_twitter_post(query, limit)
     else:
         return {"error": "Modo inválido. Use: profile, hashtag ou post"}
+
+# ---------------------- INSTAGRAM --------------------
+
+@app.get("/instagram/web")
+def instagram_web(user: str, password: str, mode: str, id: str, limit: int = 10):
+    if mode == "post":
+        return scrape_instagram_post(user, password, id, limit)
+    elif mode == "reel":
+        return scrape_instagram_reels(user, password, id, limit)
+    else:
+        return {"error": "Modo inválido. Use: post ou reels"}
 
 # ---------------------- YOUTUBE ----------------------
 
