@@ -1,5 +1,5 @@
 import pwd
-from fastapi import FastAPI, Query
+from fastapi import FastAPI, Query, Body
 from typing import Optional
 import pandas as pd
 
@@ -14,8 +14,8 @@ from src.ingestion.twitter_web import (
 )
 
 from src.ingestion.instagram_web import (
-    scrape_instagram_post,
-    scrape_instagram_reels
+    scrape_instagram_one,
+    scrape_instagram_much
 )
 
 from src.ingestion.youtube import get_youtube_comments
@@ -42,14 +42,13 @@ def twitter_web(mode: str, query: str, limit: int = 10):
 
 # ---------------------- INSTAGRAM --------------------
 
-@app.get("/instagram/web")
-def instagram_web(user: str, password: str, mode: str, id: str, limit: int = 10):
-    if mode == "post":
-        return scrape_instagram_post(user, password, id, limit)
-    elif mode == "reel":
-        return scrape_instagram_reels(user, password, id, limit)
-    else:
-        return {"error": "Modo inválido. Use: post ou reels"}
+@app.get("/instagram/web/one")
+def instagram_web_one(user: str, password: str, mode: str, id: str, limit: int = 10):
+    return scrape_instagram_one(user, password, mode, id, limit)
+    
+@app.post("/instagram/web/much")
+def instagram_web_much(user: str, password: str, body: dict = Body(...), limit: int = 10):
+    return scrape_instagram_much(user, password, body, limit)
 
 # ---------------------- YOUTUBE ----------------------
 
