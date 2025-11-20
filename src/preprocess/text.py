@@ -28,7 +28,7 @@ class Preprocessor:
             nltk.download("stopwords")
 
     def preprocess(self, text: str) -> str:
-         text = re.sub(r"https?://\S+", " ", text)
+        text = re.sub(r"https?://\S+", " ", text)
         text = re.sub(r"[@#]\w+", " ", text)
 
         text = text.lower().strip()

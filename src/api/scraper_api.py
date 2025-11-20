@@ -1,6 +1,4 @@
-import pwd
-from fastapi import FastAPI, Query, Body
-from typing import Optional
+from fastapi import FastAPI, Body
 import pandas as pd
 
 # uvicorn src.api.scraper_api:app --reload
@@ -21,6 +19,8 @@ from src.ingestion.instagram_web import (
 from src.ingestion.youtube import get_youtube_comments
 from src.ingestion.reddit import get_reddit_comments
 
+from src.services.filter_pipeline import filter_records
+
 app = FastAPI(title="Scraper API", version="1.0.0")
 
 # Helper: converte DataFrame para JSON
@@ -32,23 +32,32 @@ def df_to_json(df: pd.DataFrame):
 @app.get("/twitter/web")
 def twitter_web(mode: str, query: str, limit: int = 10):
     if mode == "profile":
-        return scrape_twitter_profile(query, limit)
+        data = scrape_twitter_profile(query, limit)
     elif mode == "hashtag":
-        return scrape_twitter_hashtag(query, limit)
+        data = scrape_twitter_hashtag(query, limit)
     elif mode == "post":
-        return scrape_twitter_post(query, limit)
+        data = scrape_twitter_post(query, limit)
     else:
         return {"error": "Modo inválido. Use: profile, hashtag ou post"}
+    if isinstance(data, pd.DataFrame):
+        data = df_to_json(data)
+    return filter_records(data)
 
 # ---------------------- INSTAGRAM --------------------
 
 @app.get("/instagram/web/one")
 def instagram_web_one(user: str, password: str, mode: str, id: str, limit: int = 10):
-    return scrape_instagram_one(user, password, mode, id, limit)
+    data = scrape_instagram_one(user, password, mode, id, limit)
+    if isinstance(data, pd.DataFrame):
+        data = df_to_json(data)
+    return filter_records(data)
     
 @app.post("/instagram/web/much")
 def instagram_web_much(user: str, password: str, body: dict = Body(...), limit: int = 10):
-    return scrape_instagram_much(user, password, body, limit)
+    data = scrape_instagram_much(user, password, body, limit)
+    if isinstance(data, pd.DataFrame):
+        data = df_to_json(data) 
+    return filter_records(data)
 
 # ---------------------- YOUTUBE ----------------------
 
