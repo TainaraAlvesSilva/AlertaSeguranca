@@ -89,8 +89,8 @@ def _collect_comments(driver, limit: int) -> List[Dict]:
     return data
 
 def scrape_instagram_much(user: str, password: str, body: dict, limit: int = 10):
-    reels = body.get("reels", [])
-    posts = body.get("posts", [])
+    reels = body.get("reels", []) or []
+    posts = body.get("posts", []) or []
     driver = _build_driver()
     _login_instagram(driver, user, password)
     time.sleep(5)
@@ -106,7 +106,7 @@ def scrape_instagram_much(user: str, password: str, body: dict, limit: int = 10)
             time.sleep(5)
             print(f"🎬 Varrendo reel {rid}")
             data = _collect_comments(driver, limit)
-            reels_results.append({"id": rid, "ok": True, "data": data})
+            reels_results.append({"id": rid, "data": data})
 
         for pid in posts:
             url = f"https://www.instagram.com/p/{pid}"
@@ -114,7 +114,7 @@ def scrape_instagram_much(user: str, password: str, body: dict, limit: int = 10)
             time.sleep(5)
             print(f"📸 Varrendo post {pid}")
             data = _collect_comments(driver, limit)
-            posts_results.append({"id": pid, "ok": True, "data": data})
+            posts_results.append({"id": pid, "data": data})
 
     finally:
         driver.quit()
